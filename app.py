@@ -3,65 +3,56 @@ import spacy
 from annotated_text import annotated_text
 
 
-@st.cache(suppress_st_warning=True, allow_output_mutation=True, show_spinner=True)
+@st.cache(show_spinner=False, allow_output_mutation=True, suppress_st_warning=True)
 def load_models():
-    print("loading models")
-    fr_model = spacy.load("./models/fr", disable=["parser", "tagger"])
-    en_model = spacy.load("./models/en", disable=["parser", "tagger"])
-    models = {"fr": fr_model, "en": en_model}
+    french_model = spacy.load("./models/fr/")
+    english_model = spacy.load("./models/en/")
+    models = {"en": english_model, "fr": french_model}
     return models
 
 
-def analyze_text(doc, anonymize, selected_entities):
-
+def process_text(doc, selected_entities, anonymize=False):
     tokens = []
     for token in doc:
         if (token.ent_type_ == "PERSON") & ("PER" in selected_entities):
             tokens.append((token.text, "Person", "#faa"))
         elif (token.ent_type_ in ["GPE", "LOC"]) & ("LOC" in selected_entities):
             tokens.append((token.text, "Location", "#fda"))
-        elif (token.ent_type_ in ["ORG"]) & ("ORG" in selected_entities):
+        elif (token.ent_type_ == "ORG") & ("ORG" in selected_entities):
             tokens.append((token.text, "Organization", "#afa"))
         else:
             tokens.append(" " + token.text + " ")
 
     if anonymize:
-        anonymized_tokens = []
+        anonmized_tokens = []
         for token in tokens:
             if type(token) == tuple:
-                token = ("X" * len(token[0]), token[1], token[2])
+                anonmized_tokens.append(("X" * len(token[0]), token[1], token[2]))
+            else:
+                anonmized_tokens.append(token)
+        return anonmized_tokens
 
-            anonymized_tokens.append(token)
-        return anonymized_tokens
-
-    else:
-        return tokens
+    return tokens
 
 
 models = load_models()
 
-selected_language = st.sidebar.selectbox("Select a language", ("en", "fr"))
-selected_model = models[selected_language]
+selected_language = st.sidebar.selectbox("Select a language", options=["en", "fr"])
 selected_entities = st.sidebar.multiselect(
-    "Select entities to detect",
-    ["ORG", "PER", "LOC"],
-    default=["ORG", "PER", "LOC"],
+    "Select the entities you want to detect",
+    options=["LOC", "PER", "ORG"],
+    default=["LOC", "PER", "ORG"],
 )
+selected_model = models[selected_language]
 
-text_container = st.beta_container()
-upload_container = st.beta_container()
+text_input = st.text_area("Type a text to anonymize")
 
-with text_container:
-    input_text = st.text_area("Enter a text to anonymize", height=115)
+uploaded_file = st.file_uploader("or Upload a file", type=["doc", "docx", "pdf", "txt"])
+if uploaded_file is not None:
+    text_input = uploaded_file.getvalue()
+    text_input = text_input.decode("utf-8")
 
-with upload_container:
-    file_uploader = st.file_uploader(
-        "Upload a file", type=["txt", "doc", "docx", "pdf"]
-    )
-
-doc = selected_model(input_text)
 anonymize = st.checkbox("Anonymize")
-
-tokens = analyze_text(doc, anonymize, selected_entities)
-
+doc = selected_model(text_input)
+tokens = process_text(doc, selected_entities, anonymize=anonymize)
 annotated_text(*tokens)

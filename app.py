@@ -54,5 +54,12 @@ if uploaded_file is not None:
 
 anonymize = st.checkbox("Anonymize")
 doc = selected_model(text_input)
-tokens = process_text(doc, selected_entities, anonymize=anonymize)
+tokens = process_text(doc, selected_entities)
+
 annotated_text(*tokens)
+
+if anonymize:
+    st.markdown("**Anonymized text**")
+    st.markdown("---")
+    anonymized_tokens = process_text(doc, selected_entities, anonymize=anonymize)
+    annotated_text(*anonymized_tokens)

@@ -10,4 +10,4 @@ Spoiler alert: here's what the app looks like
 
 ### Details about the code
 
-Medium post
+Medium [post](https://towardsdatascience.com/how-to-build-and-deploy-a-text-anonymizer-with-spacy-and-streamlit-70ed9607823)
